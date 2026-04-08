@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Aria — Your AI Assistant</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --accent:#6C63FF; --accent-dark:#4b44cc; --accent-glow:rgba(108,99,255,0.25);
+  --bg:#0e0e12; --surface:#16161d; --surface2:#1f1f2a; --surface3:#272733;
+  --border:rgba(255,255,255,0.07); --border2:rgba(255,255,255,0.12);
+  --text:#f0f0f5; --muted:#888899; --muted2:#555566;
+  --user-bubble:#6C63FF; --ai-bubble:#1f1f2a;
+  --font:'Sora',sans-serif; --mono:'JetBrains Mono',monospace;
+  --r:18px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;overflow:hidden;}
+body{font-family:var(--font);background:var(--bg);color:var(--text);display:flex;flex-direction:column;height:100dvh;}
+
+/* HEADER */
+header{display:flex;align-items:center;gap:12px;padding:14px 20px;border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0;z-index:10;}
+.logo{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#a78bfa);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:600;color:#fff;flex-shrink:0;}
+.header-info h1{font-size:15px;font-weight:600;}
+.online{font-size:11px;color:var(--muted);display:flex;align-items:center;gap:5px;}
+.online::before{content:'';width:7px;height:7px;border-radius:50%;background:#4ade80;display:inline-block;animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.3;}}
+.hbtns{margin-left:auto;display:flex;gap:6px;}
+.ibtn{background:none;border:1px solid var(--border);color:var(--muted);border-radius:8px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;transition:all .15s;}
+.ibtn:hover{background:var(--surface2);color:var(--text);}
+.ibtn.active{border-color:var(--accent);color:var(--accent);background:rgba(108,99,255,.1);}
+
+/* TOOLBAR */
+#toolbar{display:flex;align-items:center;gap:8px;padding:8px 20px;border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0;overflow-x:auto;}
+#toolbar::-webkit-scrollbar{display:none;}
+.tool-btn{display:flex;align-items:center;gap:5px;padding:5px 12px;border-radius:20px;border:1px solid var(--border);background:none;color:var(--muted);font-family:var(--font);font-size:12px;cursor:pointer;white-space:nowrap;transition:all .15s;}
+.tool-btn:hover{border-color:var(--border2);color:var(--text);}
+.tool-btn.on{border-color:var(--accent);color:var(--accent);background:rgba(108,99,255,.1);}
+.tool-dot{width:6px;height:6px;border-radius:50%;background:currentColor;}
+
+/* MESSAGES */
+#msgs{flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:18px;scroll-behavior:smooth;}
+#msgs::-webkit-scrollbar{width:4px;}
+#msgs::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px;}
+
+.mrow{display:flex;gap:10px;animation:fi .22s ease;}
+@keyframes fi{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
+.mrow.user{flex-direction:row-reverse;}
+.mavatar{width:28px;height:28px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;align-self:flex-end;}
+.mrow.ai .mavatar{background:linear-gradient(135deg,var(--accent),#a78bfa);color:#fff;}
+.mrow.user .mavatar{background:var(--surface2);border:1px solid var(--border);color:var(--muted);}
+
+.bubble{max-width:min(74%,700px);padding:11px 15px;border-radius:var(--r);font-size:14px;line-height:1.75;word-break:break-word;}
+.mrow.ai .bubble{background:var(--ai-bubble);border:1px solid var(--border);border-bottom-left-radius:4px;}
+.mrow.user .bubble{background:var(--user-bubble);color:#fff;border-bottom-right-radius:4px;}
+.bubble p{margin-bottom:.5em;}.bubble p:last-child{margin-bottom:0;}
+.bubble code{font-family:var(--mono);font-size:12px;background:rgba(255,255,255,.08);padding:1px 5px;border-radius:4px;}
+.bubble pre{background:rgba(0,0,0,.35);border:1px solid var(--border);border-radius:10px;padding:12px;overflow-x:auto;margin:8px 0;position:relative;}
+.bubble pre code{background:none;padding:0;font-size:12px;}
+.copy-btn{position:absolute;top:8px;right:8px;background:var(--surface3);border:1px solid var(--border);color:var(--muted);border-radius:6px;padding:3px 8px;font-size:11px;cursor:pointer;font-family:var(--font);}
+.copy-btn:hover{color:var(--text);}
+.bubble strong{font-weight:600;}
+.bubble em{font-style:italic;}
+.bubble ul,.bubble ol{padding-left:18px;margin:6px 0;}
+.bubble li{margin-bottom:3px;}
+.bubble h1,.bubble h2,.bubble h3{font-weight:600;margin:10px 0 4px;}
+.bubble h1{font-size:17px;}.bubble h2{font-size:15px;}.bubble h3{font-size:14px;}
+.bubble table{border-collapse:collapse;width:100%;margin:8px 0;font-size:13px;}
+.bubble th,.bubble td{border:1px solid var(--border2);padding:6px 10px;text-align:left;}
+.bubble th{background:var(--surface3);font-weight:600;}
+.bubble blockquote{border-left:3px solid var(--accent);margin:8px 0;padding:4px 12px;color:var(--muted);}
+.bubble hr{border:none;border-top:1px solid var(--border);margin:10px 0;}
+
+/* search indicator */
+.search-tag{display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--muted);background:var(--surface3);border:1px solid var(--border);border-radius:12px;padding:2px 8px;margin-bottom:8px;}
+
+/* file preview in bubble */
+.file-preview{display:flex;align-items:center;gap:8px;background:var(--surface3);border:1px solid var(--border);border-radius:10px;padding:8px 12px;margin-bottom:8px;font-size:12px;color:var(--muted);}
+.file-preview img{max-width:100%;max-height:200px;border-radius:8px;display:block;margin-bottom:8px;}
+
+/* typing */
+.tdots{display:flex;gap:4px;align-items:center;height:20px;}
+.tdots span{width:5px;height:5px;border-radius:50%;background:var(--muted);animation:bo 1.2s infinite;}
+.tdots span:nth-child(2){animation-delay:.2s;}.tdots span:nth-child(3){animation-delay:.4s;}
+@keyframes bo{0%,80%,100%{transform:translateY(0);opacity:.3;}40%{transform:translateY(-5px);opacity:1;}}
+
+/* welcome */
+#welcome{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;padding:40px;flex:1;}
+.orb{width:68px;height:68px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#a78bfa);display:flex;align-items:center;justify-content:center;font-size:28px;box-shadow:0 0 40px var(--accent-glow);animation:flt 3s ease-in-out infinite;}
+@keyframes flt{0%,100%{transform:translateY(0);}50%{transform:translateY(-7px);}}
+#welcome h2{font-size:20px;font-weight:600;}
+#welcome p{font-size:13px;color:var(--muted);max-width:340px;line-height:1.6;}
+.chips{display:flex;flex-wrap:wrap;gap:7px;justify-content:center;margin-top:6px;}
+.chip{background:var(--surface2);border:1px solid var(--border);color:var(--muted);border-radius:20px;padding:6px 13px;font-size:12px;font-family:var(--font);cursor:pointer;transition:all .15s;}
+.chip:hover{border-color:var(--accent);color:var(--text);}
+
+/* FOOTER */
+footer{padding:14px 20px;border-top:1px solid var(--border);background:var(--surface);flex-shrink:0;}
+.file-chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;}
+.fchip{display:flex;align-items:center;gap:6px;background:var(--surface3);border:1px solid var(--border);border-radius:8px;padding:4px 10px;font-size:12px;color:var(--muted);}
+.fchip button{background:none;border:none;color:var(--muted2);cursor:pointer;font-size:13px;line-height:1;}
+.fchip button:hover{color:var(--text);}
+.iwrap{display:flex;gap:8px;align-items:flex-end;background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:9px 12px;transition:border-color .15s;}
+.iwrap:focus-within{border-color:rgba(108,99,255,.5);}
+.ibtns{display:flex;gap:4px;align-self:flex-end;}
+#inp{flex:1;background:none;border:none;outline:none;color:var(--text);font-family:var(--font);font-size:14px;resize:none;line-height:1.6;max-height:120px;overflow-y:auto;}
+#inp::placeholder{color:var(--muted);}
+.send{width:34px;height:34px;border-radius:10px;background:var(--accent);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#fff;font-size:15px;transition:all .15s;flex-shrink:0;}
+.send:hover{background:var(--accent-dark);transform:scale(1.05);}
+.send:disabled{opacity:.4;cursor:default;transform:none;}
+.fnote{text-align:center;font-size:11px;color:var(--muted2);margin-top:7px;}
+
+/* SETTINGS PANEL */
+#spanel{display:none;position:fixed;top:0;right:0;bottom:0;width:min(360px,100vw);background:var(--surface);border-left:1px solid var(--border);padding:20px;flex-direction:column;gap:16px;z-index:200;overflow-y:auto;animation:si .2s ease;}
+@keyframes si{from{transform:translateX(100%);}to{transform:translateX(0);}}
+#spanel.open{display:flex;}
+.sh{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;}
+.sh h2{font-size:15px;font-weight:600;}
+.field label{display:block;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px;}
+.field input,.field textarea,.field select{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--font);font-size:13px;padding:8px 11px;outline:none;}
+.field textarea{resize:vertical;min-height:80px;line-height:1.5;}
+.field input:focus,.field textarea:focus,.field select:focus{border-color:var(--accent);}
+.sbtn{background:var(--accent);color:#fff;border:none;border-radius:10px;padding:10px;font-size:14px;font-family:var(--font);font-weight:500;cursor:pointer;width:100%;transition:background .15s;}
+.sbtn:hover{background:var(--accent-dark);}
+.sdivider{border:none;border-top:1px solid var(--border);margin:4px 0;}
+.slabel{font-size:12px;font-weight:600;color:var(--muted);letter-spacing:.05em;}
+
+/* OVERLAY */
+#overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:150;}
+#overlay.show{display:block;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo" id="hlogo">A</div>
+  <div class="header-info">
+    <h1 id="hname">Aria</h1>
+    <div class="online">Online &amp; ready</div>
+  </div>
+  <div class="hbtns">
+    <button class="ibtn" title="Clear chat" onclick="clearChat()">🗑</button>
+    <button class="ibtn" title="Settings" onclick="toggleSettings()">⚙️</button>
+  </div>
+</header>
+
+<div id="toolbar">
+  <button class="tool-btn" id="btn-search" onclick="toggleTool('search')" title="Search the web in real time">
+    <span class="tool-dot"></span> Web search
+  </button>
+  <button class="tool-btn" id="btn-file" onclick="document.getElementById('fileInput').click()" title="Upload image or file">
+    📎 Attach file
+  </button>
+  <button class="tool-btn" id="btn-research" onclick="toggleTool('research')" title="Deep Research: searches multiple times before answering">
+    <span class="tool-dot"></span> Deep research
+  </button>
+  <button class="tool-btn" id="btn-memory" onclick="showMemoryInfo()" title="Session memory info">
+    🧠 Memory
+  </button>
+</div>
+<input type="file" id="fileInput" style="display:none" accept="image/*,.pdf,.txt,.csv,.md" multiple onchange="handleFiles(this.files)"/>
+
+<div id="msgs">
+  <div id="welcome">
+    <div class="orb">✦</div>
+    <h2>Hi, I'm <span id="wname">Aria</span></h2>
+    <p>Your intelligent AI assistant with web search, file reading, memory, and more.</p>
+    <div class="chips">
+      <button class="chip" onclick="useChip(this)">🔍 Search latest AI news</button>
+      <button class="chip" onclick="useChip(this)">📄 Analyse a PDF for me</button>
+      <button class="chip" onclick="useChip(this)">💡 Brainstorm startup ideas</button>
+      <button class="chip" onclick="useChip(this)">🐛 Debug my code</button>
+      <button class="chip" onclick="useChip(this)">✍️ Help me write an email</button>
+      <button class="chip" onclick="useChip(this)">🌐 What's happening in the world?</button>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div class="file-chips" id="fileChips"></div>
+  <div class="iwrap">
+    <div class="ibtns">
+      <button class="ibtn" style="width:28px;height:28px;font-size:13px;" title="Attach file" onclick="document.getElementById('fileInput').click()">📎</button>
+    </div>
+    <textarea id="inp" placeholder="Message Aria…" rows="1"></textarea>
+    <button class="send" id="sendBtn" onclick="sendMessage()">➤</button>
+  </div>
+  <div class="fnote">Aria can make mistakes. Verify important information.</div>
+</footer>
+
+<div id="overlay" onclick="toggleSettings()"></div>
+<div id="spanel">
+  <div class="sh"><h2>Settings</h2><button class="ibtn" onclick="toggleSettings()">✕</button></div>
+
+  <div class="slabel">IDENTITY</div>
+  <div class="field"><label>Assistant name</label><input type="text" id="s-name" value="Aria"/></div>
+  <div class="field"><label>Personality / system prompt</label><textarea id="s-system">You are Aria, a friendly and highly capable AI assistant. You are helpful, thoughtful, and concise. When using web search, always cite your sources.</textarea></div>
+
+  <hr class="sdivider"/>
+  <div class="slabel">AI MODEL</div>
+  <div class="field"><label>Model</label>
+    <select id="s-model">
+      <option value="claude-sonnet-4-20250514" selected>Claude Sonnet 4 — Recommended</option>
+      <option value="claude-opus-4-20250514">Claude Opus 4 — Most capable</option>
+      <option value="claude-haiku-4-5-20251001">Claude Haiku 4.5 — Fastest</option>
+    </select>
+  </div>
+
+  <hr class="sdivider"/>
+  <div class="slabel">APPEARANCE</div>
+  <div class="field"><label>Accent colour</label><input type="color" id="s-accent" value="#6C63FF" style="height:36px;padding:3px;"/></div>
+
+  <hr class="sdivider"/>
+  <div class="slabel">BACKEND</div>
+  <div class="field"><label>Proxy URL</label><input type="text" id="s-proxy" placeholder="https://your-proxy.com"/></div>
+
+  <button class="sbtn" onclick="saveSettings()">Save settings</button>
+  <button class="sbtn" style="background:var(--surface3);color:var(--muted);" onclick="clearMemory()">Clear memory &amp; start fresh</button>
+</div>
+
+<script>
+// ─────────────────────────────────────────
+// CONFIG
+// ─────────────────────────────────────────
+const DEFAULT_PROXY = 'https://aria-proxy.whitefield-58a51f83.australiaeast.azurecontainerapps.io/api/chat'; // ← change this
+
+let cfg = {
+  name: 'Aria',
+  system: 'You are Aria, a friendly and highly capable AI assistant. You are helpful, thoughtful, and concise. When using web search, always cite your sources.',
+  model: 'claude-sonnet-4-20250514',
+  accent: '#6C63FF',
+  proxy: DEFAULT_PROXY,
+};
+
+let sessionId = null;
+let isLoading = false;
+let tools = { search: false, research: false };
+let pendingFiles = []; // { file, name, dataUrl }
+
+// ─────────────────────────────────────────
+// INIT
+// ─────────────────────────────────────────
+(function init() {
+  const saved = localStorage.getItem('aria-cfg');
+  if (saved) { try { cfg = { ...cfg, ...JSON.parse(saved) }; } catch(e) {} }
+  sessionId = localStorage.getItem('aria-session') || null;
+  applyConfig();
+  syncSettingsPanel();
+})();
+
+function applyConfig() {
+  document.title = cfg.name + ' — Your AI Assistant';
+  document.getElementById('hname').textContent = cfg.name;
+  document.getElementById('hlogo').textContent = cfg.name[0].toUpperCase();
+  const wn = document.getElementById('wname'); if (wn) wn.textContent = cfg.name;
+  document.getElementById('inp').placeholder = `Message ${cfg.name}…`;
+  document.documentElement.style.setProperty('--accent', cfg.accent);
+  document.documentElement.style.setProperty('--accent-dark', shade(cfg.accent, -22));
+  document.documentElement.style.setProperty('--accent-glow', cfg.accent + '40');
+}
+
+function syncSettingsPanel() {
+  document.getElementById('s-name').value = cfg.name;
+  document.getElementById('s-system').value = cfg.system;
+  document.getElementById('s-model').value = cfg.model;
+  document.getElementById('s-accent').value = cfg.accent;
+  document.getElementById('s-proxy').value = cfg.proxy;
+}
+
+function shade(hex, p) {
+  const n = parseInt(hex.replace('#',''), 16);
+  const clamp = v => Math.min(255, Math.max(0, v));
+  const r = clamp((n>>16)+p), g = clamp(((n>>8)&0xff)+p), b = clamp((n&0xff)+p);
+  return '#'+[r,g,b].map(v=>v.toString(16).padStart(2,'0')).join('');
+}
+
+// ─────────────────────────────────────────
+// SETTINGS
+// ─────────────────────────────────────────
+function toggleSettings() {
+  document.getElementById('spanel').classList.toggle('open');
+  document.getElementById('overlay').classList.toggle('show');
+}
+
+function saveSettings() {
+  cfg.name   = document.getElementById('s-name').value.trim() || 'Aria';
+  cfg.system = document.getElementById('s-system').value.trim();
+  cfg.model  = document.getElementById('s-model').value;
+  cfg.accent = document.getElementById('s-accent').value;
+  cfg.proxy  = document.getElementById('s-proxy').value.trim() || DEFAULT_PROXY;
+  localStorage.setItem('aria-cfg', JSON.stringify(cfg));
+  applyConfig();
+  toggleSettings();
+}
+
+// ─────────────────────────────────────────
+// TOOLS TOOLBAR
+// ─────────────────────────────────────────
+function toggleTool(t) {
+  // research implies search
+  if (t === 'research') {
+    tools.research = !tools.research;
+    if (tools.research) tools.search = true;
+  } else {
+    tools[t] = !tools[t];
+    if (!tools[t] && t === 'search') tools.research = false;
+  }
+  document.getElementById('btn-search').classList.toggle('on', tools.search);
+  document.getElementById('btn-research').classList.toggle('on', tools.research);
+}
+
+function showMemoryInfo() {
+  const count = document.querySelectorAll('.mrow').length;
+  alert(`Session ID: ${sessionId || 'none yet'}\nMessages in server memory: ~${count}\n\nMemory persists for 24 hours on the server. Use "Clear memory" in Settings to reset.`);
+}
+
+// ─────────────────────────────────────────
+// FILE HANDLING
+// ─────────────────────────────────────────
+function handleFiles(fileList) {
+  for (const file of fileList) {
+    if (pendingFiles.length >= 5) { alert('Max 5 files at once.'); break; }
+    const reader = new FileReader();
+    reader.onload = e => {
+      pendingFiles.push({ file, name: file.name, dataUrl: e.target.result });
+      renderFileChips();
+    };
+    reader.readAsDataURL(file);
+  }
+  document.getElementById('fileInput').value = '';
+}
+
+function renderFileChips() {
+  const el = document.getElementById('fileChips');
+  el.innerHTML = pendingFiles.map((f, i) => `
+    <div class="fchip">
+      ${f.file.type.startsWith('image/') ? '🖼' : f.file.type === 'application/pdf' ? '📄' : '📝'}
+      ${esc(f.name)}
+      <button onclick="removeFile(${i})">✕</button>
+    </div>`).join('');
+}
+
+function removeFile(i) {
+  pendingFiles.splice(i, 1);
+  renderFileChips();
+}
+
+// ─────────────────────────────────────────
+// CHAT
+// ─────────────────────────────────────────
+function clearChat() {
+  if (!confirm('Clear chat and memory?')) return;
+  clearMemory();
+}
+
+async function clearMemory() {
+  if (sessionId) {
+    try {
+      await fetch(`${cfg.proxy}/api/session/${sessionId}`, { method: 'DELETE' });
+    } catch(e) {}
+  }
+  sessionId = null;
+  localStorage.removeItem('aria-session');
+  pendingFiles = [];
+  renderFileChips();
+  const msgs = document.getElementById('msgs');
+  msgs.innerHTML = '';
+  addWelcome();
+  toggleSettings(); // close panel if open
+}
+
+function addWelcome() {
+  const msgs = document.getElementById('msgs');
+  const w = document.createElement('div');
+  w.id = 'welcome';
+  w.innerHTML = `
+    <div class="orb">✦</div>
+    <h2>Hi, I'm <span id="wname">${esc(cfg.name)}</span></h2>
+    <p>Your intelligent AI assistant with web search, file reading, memory, and more.</p>
+    <div class="chips">
+      <button class="chip" onclick="useChip(this)">🔍 Search latest AI news</button>
+      <button class="chip" onclick="useChip(this)">📄 Analyse a PDF for me</button>
+      <button class="chip" onclick="useChip(this)">💡 Brainstorm startup ideas</button>
+      <button class="chip" onclick="useChip(this)">🐛 Debug my code</button>
+      <button class="chip" onclick="useChip(this)">✍️ Help me write an email</button>
+      <button class="chip" onclick="useChip(this)">🌐 What's happening in the world?</button>
+    </div>`;
+  msgs.appendChild(w);
+}
+
+function removeWelcome() { const w = document.getElementById('welcome'); if (w) w.remove(); }
+
+function useChip(btn) {
+  // Auto-enable web search for search-related chips
+  const txt = btn.textContent;
+  if (txt.includes('Search') || txt.includes('happening')) {
+    tools.search = true;
+    document.getElementById('btn-search').classList.add('on');
+  }
+  document.getElementById('inp').value = txt.replace(/^[^\s]+\s/, '');
+  sendMessage();
+}
+
+async function sendMessage() {
+  if (isLoading) return;
+  const inp = document.getElementById('inp');
+  const text = inp.value.trim();
+  const hasFiles = pendingFiles.length > 0;
+
+  if (!text && !hasFiles) return;
+
+  if (!cfg.proxy || cfg.proxy.includes('YOUR-PROXY-URL')) {
+    alert('Please set your proxy URL in Settings ⚙️');
+    toggleSettings();
+    return;
+  }
+
+  inp.value = ''; inp.style.height = 'auto';
+  isLoading = true;
+  document.getElementById('sendBtn').disabled = true;
+
+  // Show user message
+  showUserBubble(text, pendingFiles);
+  const filesToSend = [...pendingFiles];
+  pendingFiles = [];
+  renderFileChips();
+
+  // Show typing
+  addTyping();
+
+  try {
+    let reply, newSessionId;
+
+    if (filesToSend.length > 0) {
+      ({ reply, sessionId: newSessionId } = await sendWithFiles(text, filesToSend));
+    } else if (tools.research) {
+      ({ reply, sessionId: newSessionId } = await sendResearch(text));
+    } else {
+      ({ reply, sessionId: newSessionId } = await sendText(text));
+    }
+
+    removeTyping();
+    if (newSessionId) {
+      sessionId = newSessionId;
+      localStorage.setItem('aria-session', sessionId);
+    }
+    addAiBubble(reply, tools.search || tools.research);
+
+  } catch (err) {
+    removeTyping();
+    addAiBubble(`⚠️ Error: ${err.message}. Check your proxy URL and that it's running.`, false);
+  }
+
+  isLoading = false;
+  document.getElementById('sendBtn').disabled = false;
+  inp.focus();
+}
+
+async function sendText(text) {
+  const res = await fetch(`${cfg.proxy}/api/chat`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      message: text,
+      sessionId,
+      system: cfg.system,
+      model: cfg.model,
+      useWebSearch: tools.search,
+    }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Server error');
+  return data;
+}
+
+async function sendResearch(text) {
+  // Deep research: run 3 search passes then synthesise
+  const searchPrompt = `You are conducting deep research. The user asked: "${text}"\n\nStep 1: Search for key facts and recent information. Step 2: Search for different perspectives or additional details. Step 3: Synthesise everything into a comprehensive, well-cited answer.`;
+  const res = await fetch(`${cfg.proxy}/api/chat`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      message: searchPrompt,
+      sessionId,
+      system: cfg.system + '\n\nYou are in Deep Research mode. Search multiple times, then synthesise a thorough, well-structured answer with citations.',
+      model: cfg.model,
+      useWebSearch: true,
+    }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Server error');
+  return data;
+}
+
+async function sendWithFiles(text, files) {
+  // Send each file separately, combine results
+  let lastData = null;
+  for (const f of files) {
+    const fd = new FormData();
+    fd.append('file', f.file, f.name);
+    fd.append('message', text || 'Please analyse this file.');
+    if (sessionId) fd.append('sessionId', sessionId);
+    fd.append('system', cfg.system);
+    fd.append('model', cfg.model);
+
+    const res = await fetch(`${cfg.proxy}/api/chat-with-file`, { method: 'POST', body: fd });
+    lastData = await res.json();
+    if (!res.ok) throw new Error(lastData.error || 'File upload error');
+    if (lastData.sessionId) sessionId = lastData.sessionId;
+  }
+  return lastData;
+}
+
+// ─────────────────────────────────────────
+// BUBBLE RENDERERS
+// ─────────────────────────────────────────
+function showUserBubble(text, files) {
+  removeWelcome();
+  const msgs = document.getElementById('msgs');
+  const row = document.createElement('div');
+  row.className = 'mrow user';
+
+  let fileHtml = '';
+  for (const f of files) {
+    if (f.file.type.startsWith('image/')) {
+      fileHtml += `<img src="${f.dataUrl}" style="max-width:100%;max-height:180px;border-radius:10px;display:block;margin-bottom:6px;"/>`;
+    } else {
+      fileHtml += `<div class="file-preview">📄 ${esc(f.name)}</div>`;
+    }
+  }
+
+  row.innerHTML = `
+    <div class="mavatar">👤</div>
+    <div class="bubble">${fileHtml}${text ? formatMd(text) : ''}</div>`;
+  msgs.appendChild(row);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function addAiBubble(text, wasSearch) {
+  removeWelcome();
+  const msgs = document.getElementById('msgs');
+  const row = document.createElement('div');
+  row.className = 'mrow ai';
+  const searchTag = wasSearch
+    ? `<div class="search-tag">🔍 Web search used</div>`
+    : '';
+  row.innerHTML = `
+    <div class="mavatar">${esc(cfg.name[0].toUpperCase())}</div>
+    <div class="bubble">${searchTag}${formatMd(text)}</div>`;
+  msgs.appendChild(row);
+  msgs.scrollTop = msgs.scrollHeight;
+
+  // Add copy buttons to code blocks
+  row.querySelectorAll('pre').forEach(pre => {
+    const btn = document.createElement('button');
+    btn.className = 'copy-btn';
+    btn.textContent = 'Copy';
+    btn.onclick = () => {
+      navigator.clipboard.writeText(pre.querySelector('code')?.textContent || pre.textContent);
+      btn.textContent = 'Copied!';
+      setTimeout(() => btn.textContent = 'Copy', 1500);
+    };
+    pre.style.position = 'relative';
+    pre.appendChild(btn);
+  });
+}
+
+function addTyping() {
+  removeWelcome();
+  const msgs = document.getElementById('msgs');
+  const row = document.createElement('div');
+  row.className = 'mrow ai'; row.id = 'typing';
+  row.innerHTML = `<div class="mavatar">${esc(cfg.name[0].toUpperCase())}</div><div class="bubble"><div class="tdots"><span></span><span></span><span></span></div></div>`;
+  msgs.appendChild(row);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+function removeTyping() { const t = document.getElementById('typing'); if(t) t.remove(); }
+
+// ─────────────────────────────────────────
+// MARKDOWN RENDERER
+// ─────────────────────────────────────────
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function formatMd(text) {
+  let s = esc(text);
+  // code blocks
+  s = s.replace(/```(\w*)\n?([\s\S]*?)```/g, (_, lang, code) =>
+    `<pre><code class="lang-${lang}">${code.trim()}</code></pre>`);
+  // inline code
+  s = s.replace(/`([^`\n]+)`/g, '<code>$1</code>');
+  // headings
+  s = s.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+  s = s.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+  s = s.replace(/^# (.+)$/gm, '<h1>$1</h1>');
+  // bold / italic
+  s = s.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>');
+  s = s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  s = s.replace(/\*(.+?)\*/g, '<em>$1</em>');
+  // blockquote
+  s = s.replace(/^&gt; (.+)$/gm, '<blockquote>$1</blockquote>');
+  // hr
+  s = s.replace(/^---$/gm, '<hr/>');
+  // tables (basic)
+  s = s.replace(/\|(.+)\|\n\|[-| :]+\|\n((?:\|.+\|\n?)+)/g, (_, header, rows) => {
+    const ths = header.split('|').filter(c=>c.trim()).map(c=>`<th>${c.trim()}</th>`).join('');
+    const trs = rows.trim().split('\n').map(r => {
+      const tds = r.split('|').filter(c=>c.trim()).map(c=>`<td>${c.trim()}</td>`).join('');
+      return `<tr>${tds}</tr>`;
+    }).join('');
+    return `<table><thead><tr>${ths}</tr></thead><tbody>${trs}</tbody></table>`;
+  });
+  // unordered list
+  s = s.replace(/((?:^[-*+] .+\n?)+)/gm, match => {
+    const items = match.trim().split('\n').map(l => `<li>${l.replace(/^[-*+] /,'')}</li>`).join('');
+    return `<ul>${items}</ul>`;
+  });
+  // ordered list
+  s = s.replace(/((?:^\d+\. .+\n?)+)/gm, match => {
+    const items = match.trim().split('\n').map(l => `<li>${l.replace(/^\d+\. /,'')}</li>`).join('');
+    return `<ol>${items}</ol>`;
+  });
+  // links
+  s = s.replace(/\[([^\]]+)\]\((https?:\/\/[^\)]+)\)/g, '<a href="$2" target="_blank" rel="noopener" style="color:var(--accent);">$1</a>');
+  // paragraphs (double newline)
+  s = s.split(/\n{2,}/).map(block => {
+    if (/^<(h[1-3]|ul|ol|pre|table|blockquote|hr)/.test(block.trim())) return block;
+    return `<p>${block.replace(/\n/g,'<br/>')}</p>`;
+  }).join('');
+  return s;
+}
+
+// ─────────────────────────────────────────
+// INPUT BEHAVIOUR
+// ─────────────────────────────────────────
+const inp = document.getElementById('inp');
+inp.addEventListener('input', function() {
+  this.style.height = 'auto';
+  this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+});
+inp.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+});
+
+// drag-and-drop files anywhere
+document.addEventListener('dragover', e => e.preventDefault());
+document.addEventListener('drop', e => {
+  e.preventDefault();
+  if (e.dataTransfer.files.length) handleFiles(e.dataTransfer.files);
+});
+</script>
+</body>
+</html>

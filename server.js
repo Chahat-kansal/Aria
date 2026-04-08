@@ -11,7 +11,7 @@ import 'dotenv/config';
 const express = require('express');
 const app = express();
 app.set('trust proxy', 1);
-app.listen(process.env.PORT || 3000);
+//app.listen(process.env.PORT || 3000);
 
 // ── SECURITY: HTTP headers ──
 app.use(helmet({ crossOriginResourcePolicy: false }));
@@ -292,4 +292,5 @@ app.get('/health', (_, res) => res.json({ status: 'ok', sessions: sessions.size 
 // ── 404 ──
 app.use((_, res) => res.status(404).json({ error: 'Not found' }));
 
-app.listen(PORT, () => console.log(`Aria proxy v2 running on port ${PORT}`));
+//app.listen(PORT, () => console.log(`Aria proxy v2 running on port ${PORT}`));
+module.exports = app;

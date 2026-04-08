@@ -9,7 +9,7 @@ import path from 'path';
 import crypto from 'crypto';
 import 'dotenv/config';
 const express = require('express');
-const app = express();
+
 app.set('trust proxy', 1);
 //app.listen(process.env.PORT || 3000);
 
